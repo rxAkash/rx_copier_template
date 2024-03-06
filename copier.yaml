@@ -1,0 +1,54 @@
+project_name:
+  type: str
+  help: What is your project name?
+
+project_description:
+  type: str
+  help: What is your project description?
+
+database:
+  type: str
+  help: What is your database type?
+  choices:
+    - mysql
+    - postgres
+  default: mysql
+
+python_version:
+  type: str
+  help: What is your python version?
+
+ci:
+  type: str
+  help: What do you want choose as a version control system?
+  choices:
+    - Github
+    - Gitlab
+
+ci_username:
+  type: str
+  help: Your username to get access of VCS
+
+ci_org_available:
+  type: bool
+  help: Does your repo have organization?
+  default: true
+
+ci_org_name:
+  type: str
+  help: Your CI organization name
+  when: "{% if ci_org_available== 'Yes' %}true{% endif %}"
+
+repository_provider:
+  type: str
+  help: Your repository provider
+  default: "{{ ci|lower }}.com"
+
+repository_name:
+  type: str
+  help: Your repository name
+  default: "{% if ci_org_available== 'Yes' %} {{ ci_org_name|join('/') }} {% endif %}{{ project_name|lower|replace('_', '-')|replace(' ', '-') }}"
+
+port_runOn:
+  type: int
+  help: Port number on your service will run

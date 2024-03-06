@@ -1,0 +1,50 @@
+name: 
+env:
+  APP_NAME: ${{ github.repository }}
+  AWS_REGION: eu-west-1
+  BUILD_IMAGE: ${{ vars.AWS_ECR_HOST }}/${{ github.repository }}
+  TF_VAR_package_version: 0.1.0.${{ github.sha }}-${{ github.run_id }}
+  TF_VAR_docker_registry: ${{ vars.AWS_ECR_HOST }}
+
+on:
+  push:
+    branches: [main, feature/*]
+  
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Run build for Veson List Fetcher Updater
+    runs-on: ubuntu-latest
+    container: zndevops/aws-docker:0.0.1
+    steps:
+      - name: "Checkout Code"
+        uses: "actions/checkout@v3"
+
+      - name: Set tag
+        id: vars
+        run: echo "::set-output name=tag::${GITHUB_REF#refs/*/}"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        run: |
+          aws ecr get-login-password | docker login --username AWS --password-stdin ${{ vars.AWS_ECR_HOST }}
+          docker build \
+            --cache-from "${{ env.BUILD_IMAGE }}":latest \
+            --tag ${{ env.BUILD_IMAGE }}:${{ env.TF_VAR_package_version }} \
+            --tag "${{ env.BUILD_IMAGE }}":latest .
+          docker push ${{ env.BUILD_IMAGE }}:${{ env.TF_VAR_package_version }}
+          docker push -q "${{ env.BUILD_IMAGE }}":latest
+ 
